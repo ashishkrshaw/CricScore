@@ -6,10 +6,12 @@ import Scoreboard from '../Scoreboard';
 import MatchSetup from './MatchSetup';
 import ScoreUpdater from './ScoreUpdater';
 import PlayerStatsView from '../common/PlayerStatsView';
+import LiveCommentary from '../common/LiveCommentary';
 import MatchHistory from './MatchHistory';
 import ActionHistory from './ActionHistory';
 import MatchControls from './MatchControls';
 import { HistoryIcon } from '../icons/HistoryIcon';
+import AdminSidebar, { AdminView as SidebarAdminView } from './AdminSidebar';
 
 // --- New Icons for the Navigation Panel ---
 
@@ -46,13 +48,14 @@ const EmailIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 
-type AdminView = 'scoring' | 'setup' | 'controls' | 'history' | 'actions';
+type AdminView = SidebarAdminView;
 
 const AdminDashboard: React.FC = () => {
     const { serverState } = useContext(AppContext);
     const { match } = serverState;
     const isMatchInProgress = match.status === MatchStatus.IN_PROGRESS;
     const [activeView, setActiveView] = useState<AdminView>('scoring');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const NavButton: React.FC<{ viewName: AdminView; label: string; icon: React.ReactNode }> = ({ viewName, label, icon }) => (
         <button
@@ -75,6 +78,7 @@ const AdminDashboard: React.FC = () => {
             case 'scoring':
                 return isMatchInProgress ? (
                     <>
+                        <LiveCommentary />
                         <PlayerStatsView match={match} />
                         <ScoreUpdater />
                     </>
@@ -101,21 +105,48 @@ const AdminDashboard: React.FC = () => {
         <div className="min-h-screen flex flex-col">
             <Header showLogout={true} />
             <main className="container mx-auto p-4 md:p-8 flex-grow">
-                <h2 className="text-2xl sm:text-3xl font-bold text-dark-gray dark:text-gray-200 mb-6">Admin Dashboard</h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-dark-gray dark:text-gray-200">Admin Dashboard</h2>
+                    {/* Mobile sidebar toggle */}
+                    <button
+                        className="lg:hidden inline-flex items-center gap-2 px-3 py-2 rounded-md border border-medium-gray dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                        onClick={() => setIsSidebarOpen(true)}
+                        aria-label="Open navigation"
+                    >
+                        <span className="w-5 h-5 inline-block">☰</span>
+                        <span className="text-sm font-semibold">Menu</span>
+                    </button>
+                </div>
+
                 <Scoreboard match={match} />
 
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
                     {/* Left Navigation Panel */}
                     <aside className="lg:col-span-1">
-                        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-medium-gray dark:border-gray-700">
-                            <nav className="flex flex-row lg:flex-col lg:space-y-2 overflow-x-auto -mx-4 px-4 pb-2 lg:pb-0">
-                                <NavButton viewName="scoring" label="Live Scoring" icon={<ScoreIcon />} />
-                                <NavButton viewName="setup" label="Match Setup" icon={<SetupIcon />} />
-                                <NavButton viewName="controls" label="Match Controls" icon={<ControlsIcon />} />
-                                <NavButton viewName="history" label="Match History" icon={<HistoryIcon />} />
-                                <NavButton viewName="actions" label="Action Log" icon={<ActionsIcon />} />
-                            </nav>
+                        {/* Desktop fixed sidebar */}
+                        <div className="hidden lg:block bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-medium-gray dark:border-gray-700 sticky top-4">
+                            <AdminSidebar activeView={activeView} setActiveView={setActiveView} />
                         </div>
+
+                        {/* Mobile drawer sidebar */}
+                        {isSidebarOpen && (
+                            <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+                                <div className="absolute inset-0 bg-black/40" onClick={() => setIsSidebarOpen(false)} />
+                                <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white dark:bg-gray-900 shadow-xl p-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-bold text-dark-gray dark:text-gray-200">Navigation</h3>
+                                        <button
+                                            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                                            aria-label="Close navigation"
+                                            onClick={() => setIsSidebarOpen(false)}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <AdminSidebar activeView={activeView} setActiveView={(v)=>{ setActiveView(v); setIsSidebarOpen(false); }} />
+                                </div>
+                            </div>
+                        )}
                     </aside>
 
                     {/* Right Content Panel */}
@@ -124,7 +155,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
             </main>
-             <a
+            <a
                 href="mailto:admisure215@gmail.com?subject=Feedback for CricScore Scoreboard"
                 className="fixed bottom-5 right-5 bg-classic-blue text-white font-bold py-3 px-5 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 z-50 flex items-center gap-2"
                 target="_blank"

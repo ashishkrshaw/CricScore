@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import Confetti from 'react-confetti';
 import { MatchState, MatchStatus, PlayerStats } from '../types';
 import { useLanguage } from './LanguageContext';
+import OverProgressRing from './common/OverProgressRing';
+import { AppContext } from '../App';
 
 interface ScoreboardProps {
   match: MatchState;
@@ -24,6 +26,7 @@ const formatPlayerName = (player: PlayerStats) => {
 
 const Scoreboard: React.FC<ScoreboardProps> = ({ match }) => {
   const { t } = useLanguage();
+  const { settings } = useContext(AppContext);
   const { teamA, teamB, battingTeam, status, scheduledTime, tossWinner, choseTo, totalOvers, strikerId, nonStrikerId, bowlerId, targetScore, currentInning, resultMessage, isPaused } = match;
 
   const [showConfetti, setShowConfetti] = useState(false);
@@ -99,7 +102,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ match }) => {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 sm:p-4 border border-medium-gray dark:border-gray-700">
-      {showConfetti && <Confetti />}
+  {showConfetti && settings?.confetti && <Confetti />}
       <div className="text-center mb-2 sm:mb-4">
         <p className={`font-bold text-sm sm:text-base ${color}`}>{message}</p>
       </div>
@@ -162,6 +165,9 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ match }) => {
                     <p className="text-sm text-gray-500 dark:text-gray-400">{t('scoreboard.bowler')}</p>
                     <p className="font-bold text-md text-dark-gray dark:text-gray-200">{bowler ? `${formatPlayerName(bowler)} ${bowler.oversBowled}.${bowler.ballsBowled} (${bowler.wicketsTaken}/${bowler.runsConceded}) M:${bowler.maidens || 0}` : 'N/A'}</p>
                 </div>
+        <div className="flex items-center justify-center">
+          <OverProgressRing ballsBowled={battingTeamData.balls} />
+        </div>
             </div>
         </>
        )}

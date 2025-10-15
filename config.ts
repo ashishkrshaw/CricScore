@@ -1,10 +1,10 @@
 /**
  * ===================================================================================
- * PRODUCTION DEPLOYMENT: BACKEND SERVER URL
+ * LOCAL DEVELOPMENT: BACKEND SERVER URL
  * ===================================================================================
- * This file is configured to connect to the specified backend server.
- * The WebSocket URL is now hardcoded to point to the production server.
+ * This file is configured to connect to the local development server.
+ * Switch to production URL for deployment.
  * ===================================================================================
  */
 
-export const WEBSOCKET_URL = 'wss://cm-s9z2.onrender.com';
+export const WEBSOCKET_URL = 'ws://localhost:8080';

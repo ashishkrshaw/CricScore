@@ -72,7 +72,7 @@ export interface MatchState {
   currentBowlerRunsThisOver?: number;
 }
 
-export type UserRole = 'admin' | 'viewer' | null;
+export type UserRole = 'admin' | 'viewer' | 'commentator' | null;
 
 export interface AppState {
   viewerCount: number;

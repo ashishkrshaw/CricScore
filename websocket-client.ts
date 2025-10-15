@@ -12,6 +12,7 @@ interface Callbacks {
 }
 
 let callbacks: Callbacks | null = null;
+let lastLoginPayload: { role: 'admin' | 'viewer' | 'commentator'; details?: { name: string } } | null = null;
 
 const connectSocket = () => {
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
@@ -29,6 +30,14 @@ const connectSocket = () => {
         if (reconnectInterval) {
             clearInterval(reconnectInterval);
             reconnectInterval = null;
+        }
+        // Re-authenticate on reconnect to keep viewer count accurate
+        if (lastLoginPayload) {
+            try {
+                sendMessage('login', lastLoginPayload);
+            } catch (e) {
+                console.warn('Failed to resend login on reconnect', e);
+            }
         }
     };
 
@@ -79,8 +88,11 @@ const sendMessage = (type: string, payload?: any) => {
 };
 
 // --- API Functions ---
-export const login = (payload: { role: string; details?: { name: string } }) => sendMessage('login', payload);
-export const logout = () => sendMessage('logout');
+export const login = (payload: { role: 'admin' | 'viewer' | 'commentator'; details?: { name: string } }) => {
+    lastLoginPayload = payload;
+    sendMessage('login', payload);
+};
+export const logout = () => { lastLoginPayload = null; sendMessage('logout'); };
 export const toggleTheme = () => sendMessage('toggleTheme');
 export const setupMatch = (payload: { teamAName: string; teamBName: string; scheduledTime: string; teamAPlayers: Player[]; teamBPlayers: Player[] }) => sendMessage('setupMatch', payload);
 export const startMatch = (payload: { tossWinner: 'teamA' | 'teamB'; choseTo: 'bat' | 'bowl'; totalOvers: number }) => sendMessage('startMatch', payload);
@@ -96,3 +108,5 @@ export const endMatch = () => sendMessage('endMatch');
 export const resetMatch = () => sendMessage('resetMatch');
 export const loadMatch = (match: MatchState) => sendMessage('loadMatch', match);
 export const clearMatchHistory = () => sendMessage('clearMatchHistory');
+// Commentator-only: send live commentary line
+export const addCommentary = (payload: { text: string }) => sendMessage('addCommentary', payload);

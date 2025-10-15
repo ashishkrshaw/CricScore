@@ -162,6 +162,8 @@ export const recordBall = (state: AppState, payload: { runs: number; extra?: Ext
         match.currentOverHistory = [];
     }
 
+    // Keep the bowler for this delivery even if over ends; update stats first then clear bowlerId
+    const bowlerIdForThisBall = bowlerId;
     let overJustEnded = false;
     if (isBallValid) {
         currentBattingTeam.balls += 1;
@@ -170,7 +172,7 @@ export const recordBall = (state: AppState, payload: { runs: number; extra?: Ext
             currentBattingTeam.overs += 1;
             [strikerId, nonStrikerId] = [nonStrikerId, strikerId];
             overJustEnded = true;
-            bowlerId = null; // New bowler needed
+            // Do not null bowlerId yet; do it after updating bowler stats block below
         }
     }
 
@@ -213,7 +215,7 @@ export const recordBall = (state: AppState, payload: { runs: number; extra?: Ext
     });
 
     currentBowlingTeam.players.forEach((p: PlayerStats) => {
-        if (p.id === bowlerId) {
+        if (p.id === bowlerIdForThisBall) {
             if (p.maidens === undefined) p.maidens = 0;
             p.runsConceded += scoreToAdd;
             if (isBallValid) {
@@ -235,6 +237,11 @@ export const recordBall = (state: AppState, payload: { runs: number; extra?: Ext
             }
         }
     });
+
+    // After updating the bowler's stats for this ball, clear bowlerId if the over just ended
+    if (overJustEnded) {
+        bowlerId = null; // New bowler needed for next over
+    }
 
     if (extra !== 'wide' && runs % 2 !== 0 && runs < 7) { 
         [strikerId, nonStrikerId] = [nonStrikerId, strikerId]; 

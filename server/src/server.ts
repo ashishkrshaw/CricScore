@@ -12,7 +12,9 @@ import { dirname, join } from 'path';
 import dotenv from 'dotenv';
 // ESM-compliant alternative to __dirname.
 const currentDir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(currentDir, '../../.env') });
+// Load environment from the project root .env (works out of the box with the committed Atlas URI).
+// dist/server.js lives in <root>/dist, so one level up points to <root>/.env
+dotenv.config({ path: join(currentDir, '../.env') });
 
 const PORT = process.env.PORT || 8080;
 
@@ -40,7 +42,7 @@ app.use(express.static(currentDir));
 
 
 interface UserWebSocket extends WebSocket {
-    role: 'admin' | 'viewer' | 'unknown';
+    role: 'admin' | 'viewer' | 'commentator' | 'unknown';
     isAlive: boolean;
 }
 
@@ -182,12 +184,32 @@ wss.on('connection', (ws: WebSocket) => {
 
             switch (type) {
                 case 'login':
-                    if (payload.role === 'admin' || payload.role === 'viewer') {
+                    if (payload.role === 'admin' || payload.role === 'viewer' || payload.role === 'commentator') {
                         userWs.role = payload.role;
                         updateViewerCount();
                         broadcastState();
                     }
                     break;
+                case 'addCommentary': {
+                    // Only allow commentator or admin to add commentary
+                    if (userWs.role === 'commentator' || userWs.role === 'admin') {
+                        const text: string = (payload?.text || '').toString().trim();
+                        if (text.length > 0) {
+                            const currentTeamKey = state.match.battingTeam;
+                            const currentTeam = (state.match as any)[currentTeamKey];
+                            const overDisplay = `${currentTeam.overs}.${currentTeam.balls}`;
+                            const line = `${overDisplay}: ${text}`;
+                            const newState: AppState = JSON.parse(JSON.stringify(state));
+                            newState.match.liveCommentary = text;
+                            if (!newState.match.commentaryHistory) newState.match.commentaryHistory = [];
+                            newState.match.commentaryHistory.unshift(line);
+                            // keep last 50 lines
+                            if (newState.match.commentaryHistory.length > 50) newState.match.commentaryHistory.pop();
+                            updateState(newState);
+                        }
+                    }
+                    break;
+                }
                 case 'logout':
                     userWs.role = 'unknown';
                     updateViewerCount();

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { AppState, UserRole, MatchState } from './types';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/admin/AdminDashboard';
+import CommentatorDashboard from './components/commentator/CommentatorDashboard';
 import ViewerScoreboard from './components/viewer/ViewerScoreboard';
 import * as client from './websocket-client';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -22,6 +23,8 @@ export const AppContext = React.createContext<{
   logout: () => void;
   isHistoryModalOpen: boolean;
   toggleHistoryModal: () => void;
+  settings: { confetti: boolean; sounds: boolean };
+  setSettings: (s: { confetti: boolean; sounds: boolean }) => void;
 }>({
   serverState: getInitialState(),
   connectionStatus: 'connecting',
@@ -30,6 +33,8 @@ export const AppContext = React.createContext<{
   logout: () => {},
   isHistoryModalOpen: false,
   toggleHistoryModal: () => {},
+  settings: { confetti: true, sounds: false },
+  setSettings: () => {},
 });
 
 // --- New Component for Viewer Match History ---
@@ -92,6 +97,13 @@ const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [viewerDetails, setViewerDetails] = useState<{ name: string } | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [settings, setSettings] = useState<{ confetti: boolean; sounds: boolean }>(()=>{
+    try{
+      const raw = localStorage.getItem('viewerSettings');
+      if(raw){ return JSON.parse(raw); }
+    }catch{}
+    return { confetti: true, sounds: false };
+  });
 
 
   useEffect(() => {
@@ -122,6 +134,10 @@ const App: React.FC = () => {
     }
   }, [serverState?.theme]);
 
+  useEffect(()=>{
+    try{ localStorage.setItem('viewerSettings', JSON.stringify(settings)); }catch{}
+  }, [settings]);
+
   const handleAdminLogin = () => {
     setIsLoggedIn(true);
     setUserRole('admin');
@@ -134,6 +150,14 @@ const App: React.FC = () => {
     setViewerDetails({ name });
     try { localStorage.setItem('viewerName', name); } catch {}
     client.login({ role: 'viewer', details: { name } });
+  };
+
+  const handleCommentatorLogin = (name: string) => {
+    setIsLoggedIn(true);
+    setUserRole('commentator');
+    setViewerDetails({ name });
+    try { localStorage.setItem('commentatorName', name); } catch {}
+    client.login({ role: 'commentator', details: { name } });
   };
   
   const handleLogout = useCallback(() => {
@@ -167,10 +191,13 @@ const App: React.FC = () => {
 
   const renderAppContent = () => {
     if (!isLoggedIn) {
-      return <LoginScreen onAdminLogin={handleAdminLogin} onViewerLogin={handleViewerLogin} />;
+      return <LoginScreen onAdminLogin={handleAdminLogin} onViewerLogin={handleViewerLogin} onCommentatorLogin={handleCommentatorLogin} />;
     }
     if (userRole === 'admin') {
       return <AdminDashboard />;
+    }
+    if (userRole === 'commentator') {
+      return <CommentatorDashboard />;
     }
     if (userRole === 'viewer') {
       return <ViewerScoreboard />;
@@ -182,7 +209,7 @@ const App: React.FC = () => {
 
   return (
     <LanguageProvider>
-      <AppContext.Provider value={{ serverState, connectionStatus, userRole, viewerDetails, logout: handleLogout, isHistoryModalOpen, toggleHistoryModal }}>
+      <AppContext.Provider value={{ serverState, connectionStatus, userRole, viewerDetails, logout: handleLogout, isHistoryModalOpen, toggleHistoryModal, settings, setSettings }}>
           <div className={`min-h-screen transition-all duration-300 ${isBannerVisible ? 'pt-9' : ''}`}>
               <ConnectionStatusBanner />
               <ErrorBoundary>

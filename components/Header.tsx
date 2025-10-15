@@ -25,7 +25,7 @@ const MoonIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 
 
 const Header: React.FC<HeaderProps> = ({ showLogout }) => {
-  const { serverState, logout, userRole, toggleHistoryModal } = useContext(AppContext);
+  const { serverState, logout, userRole, toggleHistoryModal, settings, setSettings } = useContext(AppContext);
   const { viewerCount, theme } = serverState;
   const { language, setLanguage } = useLanguage();
 
@@ -69,6 +69,14 @@ const Header: React.FC<HeaderProps> = ({ showLogout }) => {
             >
               {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
             </button>
+            <div className="flex items-center gap-2 text-white">
+              <label className="text-sm">Confetti</label>
+              <input type="checkbox" checked={settings.confetti} onChange={e=> setSettings({ ...settings, confetti: e.target.checked })} />
+            </div>
+            <div className="flex items-center gap-2 text-white">
+              <label className="text-sm">Sounds</label>
+              <input type="checkbox" checked={settings.sounds} onChange={e=> setSettings({ ...settings, sounds: e.target.checked })} />
+            </div>
             {userRole === 'viewer' && (
               <button
                 onClick={toggleHistoryModal}
@@ -103,6 +111,16 @@ const Header: React.FC<HeaderProps> = ({ showLogout }) => {
                   <span>Toggle Theme</span>
                   {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
                 </button>
+              </div>
+              <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between py-1 text-gray-700 dark:text-gray-300">
+                  <span>Confetti</span>
+                  <input type="checkbox" checked={settings.confetti} onChange={e=> setSettings({ ...settings, confetti: e.target.checked })} />
+                </div>
+                <div className="flex items-center justify-between py-1 text-gray-700 dark:text-gray-300">
+                  <span>Sounds</span>
+                  <input type="checkbox" checked={settings.sounds} onChange={e=> setSettings({ ...settings, sounds: e.target.checked })} />
+                </div>
               </div>
               {userRole === 'viewer' && (
                 <div className="p-2 border-t border-gray-200 dark:border-gray-700">
